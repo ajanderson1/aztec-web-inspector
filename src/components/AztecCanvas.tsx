@@ -2,6 +2,8 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import type { AztecStructure, ModuleInfo } from '../lib/aztec-structure';
 import { MODULE_COLORS, computeCodewordOutline } from '../lib/aztec-structure';
+import { ModuleTooltip } from './ModuleTooltip';
+import type { CodewordInfo } from '../lib/aztec-text-decoder';
 
 interface LayerVisibility {
   finder: boolean;
@@ -22,6 +24,9 @@ interface AztecCanvasProps {
   onHover: (module: ModuleInfo | null) => void;
   hoveredCodewordIndex: number | null;
   hoveredSymbolModules: [number, number][] | null;
+  hoveredModule: ModuleInfo | null;
+  hoveredSymbol: CodewordInfo | null;
+  decodedText: string;
 }
 
 export function AztecCanvas({
@@ -33,6 +38,9 @@ export function AztecCanvas({
   onHover,
   hoveredCodewordIndex,
   hoveredSymbolModules,
+  hoveredModule,
+  hoveredSymbol,
+  decodedText,
 }: AztecCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hoverCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -41,6 +49,7 @@ export function AztecCanvas({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
   const getModuleSize = useCallback(() => {
     if (!structure || !containerRef.current) return 10;
@@ -306,6 +315,7 @@ export function AztecCanvas({
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
     if (isDragging) {
       setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     } else if (structure && containerRef.current) {
@@ -333,6 +343,7 @@ export function AztecCanvas({
   const handleMouseUp = () => setIsDragging(false);
   const handleMouseLeave = () => {
     setIsDragging(false);
+    setMousePos(null);
     onHover(null);
   };
 
@@ -423,6 +434,18 @@ export function AztecCanvas({
       <div className="absolute bottom-3 right-3 px-2 py-1 bg-white/90 dark:bg-gray-800/90 rounded-md text-xs font-mono text-gray-600 dark:text-gray-400 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
         {Math.round(zoom * 100)}%
       </div>
+
+      {/* Module details tooltip */}
+      {structure && mousePos && (
+        <ModuleTooltip
+          hoveredModule={hoveredModule}
+          hoveredSymbol={hoveredSymbol}
+          structure={structure}
+          decodedText={decodedText}
+          mouseX={mousePos.x}
+          mouseY={mousePos.y}
+        />
+      )}
     </div>
   );
 }
