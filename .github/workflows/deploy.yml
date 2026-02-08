@@ -29,3 +29,11 @@ jobs:
           strip_components: 0
           overwrite: true
           rm: true
+
+      - name: Restart Caddy to rebind mount
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: sudo docker restart vasttrafik_caddy
