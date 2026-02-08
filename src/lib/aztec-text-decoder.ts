@@ -347,12 +347,16 @@ class BitStream {
   private bitBuffer = 0;
   private bitsAvailable = 0;
   private position = 0;
+  private readonly values: readonly number[];
+  private readonly codewordSize: number;
 
   constructor(
-    private readonly values: readonly number[],
-    private readonly codewordSize: number,
+    values: readonly number[],
+    codewordSize: number,
     startIndex: number = 0,
   ) {
+    this.values = values;
+    this.codewordSize = codewordSize;
     this.position = startIndex;
   }
 
@@ -419,9 +423,9 @@ export function decodeCodewords(
 
   while (stream.hasMore && stream.bitOffset < dataBitLimit) {
     const startBit = stream.bitOffset;
-    const activeMode = shiftMode ?? currentMode;
-    const table = MODE_TABLES[activeMode];
-    const bitsNeeded = MODE_BITS[activeMode];
+    const activeMode: AztecTextMode = shiftMode ?? currentMode;
+    const table: readonly TableEntry[] = MODE_TABLES[activeMode];
+    const bitsNeeded: number = MODE_BITS[activeMode];
 
     // Don't read past data boundary
     if (startBit + bitsNeeded > dataBitLimit) break;
@@ -445,7 +449,7 @@ export function decodeCodewords(
       continue;
     }
 
-    const entry = table[symbolValue];
+    const entry: TableEntry = table[symbolValue];
 
     switch (entry.kind) {
       case 'char': {

@@ -567,6 +567,7 @@ function scoreBullseyeAlignment(
  * at barcode edges. Kept for future use with rotated/skewed barcodes.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// @ts-expect-error Kept for future use with rotated/skewed barcodes
 function _detectGridOffset(
   imageData: ImageData,
   outputSize: number,

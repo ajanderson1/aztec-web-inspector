@@ -315,6 +315,8 @@ describe('describeCodeword', () => {
       index: 0,
       rawValue: 2,
       bitSize: 5,
+      startBit: 0,
+      endBit: 5,
       decodedChars: 'A',
       charPosition: 0,
       mode: 'UPPER',
@@ -328,6 +330,8 @@ describe('describeCodeword', () => {
       index: 0,
       rawValue: 0,
       bitSize: 5,
+      startBit: 0,
+      endBit: 5,
       fromMode: 'UPPER',
       toMode: 'PUNCT',
     };
@@ -340,6 +344,8 @@ describe('describeCodeword', () => {
       index: 0,
       rawValue: 28,
       bitSize: 5,
+      startBit: 0,
+      endBit: 5,
       fromMode: 'UPPER',
       toMode: 'LOWER',
     };
@@ -352,6 +358,8 @@ describe('describeCodeword', () => {
       index: 58,
       rawValue: 0xA3,
       bitSize: 8,
+      startBit: 0,
+      endBit: 8,
     };
     expect(describeCodeword(info)).toBe('Reed-Solomon parity');
   });
@@ -362,6 +370,8 @@ describe('describeCodeword', () => {
       index: 0,
       rawValue: 2,
       bitSize: 5,
+      startBit: 0,
+      endBit: 5,
       decodedChars: '\r\n',
       charPosition: 0,
       mode: 'PUNCT',
