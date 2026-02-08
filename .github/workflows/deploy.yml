@@ -36,4 +36,4 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: sudo docker restart vasttrafik_caddy
+          script: docker restart vasttrafik_caddy
