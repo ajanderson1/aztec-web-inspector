@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Base styles */
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}
+
+/* Selection */
+::selection {
+  @apply bg-gray-200 dark:bg-gray-700;
+}
+
+/* Focus visible */
+:focus-visible {
+  @apply outline-none ring-2 ring-gray-400 dark:ring-gray-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  @apply accent-gray-600 dark:accent-gray-400;
+}
