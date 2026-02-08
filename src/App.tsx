@@ -249,6 +249,20 @@ function App() {
     fileInputRef.current?.click();
   }, []);
 
+  const sampleBarcodes = [
+    { src: '/samples/sample-compact-1.png', label: 'Compact (small)' },
+    { src: '/samples/sample-compact-2.png', label: 'Compact (medium)' },
+    { src: '/samples/sample-full-1.png', label: 'Full-range (URL)' },
+    { src: '/samples/sample-full-2.png', label: 'Full-range (text)' },
+  ];
+
+  const handleSampleClick = useCallback((e: React.MouseEvent, src: string) => {
+    e.stopPropagation();
+    loadImageFromUrl(src)
+      .then(imageData => processImageData(imageData))
+      .catch(() => setError('Failed to load sample image.'));
+  }, [processImageData]);
+
   // Derive hovered symbol from hovered module's bit position
   const hoveredSymbol = useMemo((): CodewordInfo | null => {
     if (!hoveredModule || !structure || hoveredModule.codewordIndex === undefined || hoveredModule.bitIndex === undefined) {
@@ -266,20 +280,28 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       {/* Header */}
-      <header className="h-14 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors duration-200">
-        <div className="h-full flex items-center justify-between max-w-[1920px] mx-auto px-4">
-          <div className="flex items-center gap-2.5">
-            <Grid3X3 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-            <span className="font-medium text-gray-900 dark:text-white">
-              Aztec Inspector
-            </span>
+      <header>
+        <div className="h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+        <div className="h-14 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-colors duration-200">
+          <div className="h-full flex items-center justify-between max-w-[1920px] mx-auto px-4">
+            <div className="flex items-center gap-2.5">
+              <Grid3X3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <div>
+                <span className="font-semibold text-gray-900 dark:text-white text-sm leading-tight block tracking-tight">
+                  Aztec Inspector
+                </span>
+                <span className="text-[11px] text-gray-400 dark:text-gray-500 leading-tight">
+                  Barcode Structure Viewer
+                </span>
+              </div>
+            </div>
+            <ThemeToggle theme={theme} setTheme={setTheme} />
           </div>
-          <ThemeToggle theme={theme} setTheme={setTheme} />
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex h-[calc(100vh-56px)]">
+      <main className="flex h-[calc(100vh-60px)]">
         {/* Left Panel - Controls */}
         <aside className="w-72 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto transition-colors duration-200">
           <div className="p-4">
@@ -328,6 +350,26 @@ function App() {
               <p className="text-sm text-gray-500 dark:text-gray-500">
                 or click to browse
               </p>
+              <div className="mt-6 flex flex-col items-center gap-2" onClick={e => e.stopPropagation()}>
+                <p className="text-xs text-gray-400 dark:text-gray-600">Try a sample</p>
+                <div className="flex gap-2">
+                  {sampleBarcodes.map((sample) => (
+                    <button
+                      key={sample.src}
+                      onClick={(e) => handleSampleClick(e, sample.src)}
+                      title={sample.label}
+                      className="w-11 h-11 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-sm transition-all duration-150 overflow-hidden p-0.5"
+                    >
+                      <img
+                        src={sample.src}
+                        alt={sample.label}
+                        className="w-full h-full object-contain"
+                        draggable={false}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
