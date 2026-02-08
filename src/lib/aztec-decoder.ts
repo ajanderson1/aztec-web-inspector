@@ -1030,7 +1030,7 @@ function extractBinaryGrid(
       }
 
       const avgLuminance = totalLuminance / sampleCount;
-      const isBlack = avgLuminance < threshold;
+      const isBlack = avgLuminance <= threshold;
       grid[row][col] = isBlack;
 
       // Log bullseye modules and corners for debugging
