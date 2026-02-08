@@ -5,8 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>aztec-web-inspector</title>
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' https://analytics.ajanderson.net https://fastly.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://analytics.ajanderson.net https://fastly.jsdelivr.net; worker-src 'self' blob:;" />
     <script defer src="https://analytics.ajanderson.net/script.js"
-            data-website-id="61ee5b66-31ba-40ee-87d0-358b61c4b662"></script>
+            data-website-id="61ee5b66-31ba-40ee-87d0-358b61c4b662"
+            integrity="sha384-6PHtXKae10+dZuA/fcmjkSTDco+NPBE5fZ4eS/Em2lVIsS6FdDZIgs06MBJLEcSW"
+            crossorigin="anonymous"></script>
   </head>
   <body>
     <div id="root"></div>
