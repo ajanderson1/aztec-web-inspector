@@ -363,6 +363,9 @@ function App() {
               onHover={setHoveredModule}
               hoveredCodewordIndex={hoveredModule?.codewordIndex ?? null}
               hoveredSymbolModules={hoveredSymbolModules}
+              hoveredModule={hoveredModule}
+              hoveredSymbol={hoveredSymbol}
+              decodedText={decodedText}
             />
           )}
 
@@ -391,8 +394,6 @@ function App() {
             <InfoPanel
               structure={structure}
               decodedText={decodedText}
-              hoveredModule={hoveredModule}
-              hoveredSymbol={hoveredSymbol}
             />
           </div>
         </aside>
