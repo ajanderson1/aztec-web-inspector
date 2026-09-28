@@ -10,7 +10,7 @@ fetch() { curl --fail --silent --show-error --max-time 12 -H 'Cache-Control: no-
 fetch "/release.txt" > "$tmp/release"
 [[ $(< "$tmp/release") == "$id" ]] || { echo 'wrong release' >&2; exit 1; }
 fetch "/index.html" > "$tmp/index"
-grep -q 'aztec-web-inspector' "$tmp/index" || { echo 'wrong page' >&2; exit 1; }
+grep -q '<title>aztec-web-inspector</title>' "$tmp/index" || { echo 'wrong page' >&2; exit 1; }
 fetch '/samples/sample-compact-1.png' > "$tmp/sample"
 [[ -s $tmp/sample ]] || exit 1
 # Check every referenced entrypoint, not only the first JavaScript file.

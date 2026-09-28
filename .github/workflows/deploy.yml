@@ -3,37 +3,64 @@ name: Deploy to Production
 on:
   push:
     branches: [production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aztec-production-deploy
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Manual runs are only for the production ref; branch previews must not deploy.
+    if: github.ref == 'refs/heads/production'
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
-
       - run: npm ci
+      - run: npm run test:run
+      - run: npm run lint
       - run: npm run build
-
-      - name: Deploy to VPS
-        uses: appleboy/scp-action@v0.1.7
+      - name: Mark exact build revision
+        run: printf '%s\n' "$GITHUB_SHA" > dist/release.txt
+      - name: Join deployment tailnet
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "dist/*"
-          target: "/home/aztecuser/aztec-web-inspector/"
-          strip_components: 0
-          overwrite: true
-          rm: true
-
-      - name: Restart Caddy to rebind mount
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: docker restart vasttrafik_caddy
+          oauth-client-id: ${{ secrets.AZTEC_TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.AZTEC_TS_OAUTH_SECRET }}
+          tags: tag:aztec-ci
+      - name: Pin deploy host and install deploy-only identity
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.AZTEC_DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST_KEY: ${{ secrets.AZTEC_DEPLOY_SSH_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_SSH_HOST_KEY"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/aztec_deploy
+          chmod 600 ~/.ssh/aztec_deploy
+          printf '%s\n' "$DEPLOY_SSH_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/aztec_deploy > /dev/null
+          ssh-keygen -F paiju.tailbf2225.ts.net -f ~/.ssh/known_hosts > /dev/null
+      - name: Publish and verify on Paiju
+        env:
+          DEPLOY_HOST: paiju.tailbf2225.ts.net
+          DEPLOY_USER: aztecdeploy
+          RELEASES_ROOT: /srv/services/aztec-web-inspector/releases
+        run: |
+          set -euo pipefail
+          ssh=(ssh -i ~/.ssh/aztec_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12)
+          scp=(scp -i ~/.ssh/aztec_deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12)
+          target="$DEPLOY_USER@$DEPLOY_HOST"
+          "${ssh[@]}" "$target" "mkdir -- '$RELEASES_ROOT/.incoming/$GITHUB_SHA'"
+          "${scp[@]}" -r dist/. "$target:$RELEASES_ROOT/.incoming/$GITHUB_SHA/"
+          "${ssh[@]}" "$target" "bash -s -- '$GITHUB_SHA' '$RELEASES_ROOT/.incoming/$GITHUB_SHA' '$RELEASES_ROOT'" < scripts/deploy-release.sh
+          "${ssh[@]}" "$target" "bash -s -- 'http://127.0.0.1:18081' '$GITHUB_SHA'" < scripts/verify-deployment.sh

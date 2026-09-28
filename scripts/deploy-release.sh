@@ -14,6 +14,7 @@ root=$3
 [[ ! -e $root/$id && ! -L $root/$id ]] || { echo 'release already exists' >&2; exit 2; }
 [[ -f $incoming/index.html && ! -L $incoming/index.html && -f $incoming/release.txt && ! -L $incoming/release.txt ]] || exit 2
 [[ $(< "$incoming/release.txt") == "$id" ]] || exit 2
+grep -q '<title>aztec-web-inspector</title>' "$incoming/index.html" || exit 2
 [[ -f $incoming/samples/sample-compact-1.png ]] || exit 2
 
 # Verify every built entrypoint exists; a partial SCP must not become current.
