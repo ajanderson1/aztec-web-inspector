@@ -566,8 +566,8 @@ function scoreBullseyeAlignment(
  * NOTE: Currently disabled - the offset calculation was causing incorrect sampling
  * at barcode edges. Kept for future use with rotated/skewed barcodes.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 // @ts-expect-error Kept for future use with rotated/skewed barcodes
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _detectGridOffset(
   imageData: ImageData,
   outputSize: number,
