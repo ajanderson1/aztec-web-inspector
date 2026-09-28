@@ -5,8 +5,9 @@ tmp=$(mktemp -d)
 trap 'rm -rf -- "$tmp"' EXIT
 id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 mkdir -p "$tmp/assets" "$tmp/samples"
-printf '<title>aztec-web-inspector</title><script src="/assets/app-abc123.js"></script>\n' > "$tmp/index.html"
+printf '<title>aztec-web-inspector</title><script src="/assets/app-abc123.js"></script><link href="/assets/app-abc123.css" rel="stylesheet">\n' > "$tmp/index.html"
 printf 'app\n' > "$tmp/assets/app-abc123.js"
+printf 'css\n' > "$tmp/assets/app-abc123.css"
 printf 'sample\n' > "$tmp/samples/sample-compact-1.png"
 printf '%s\n' "$id" > "$tmp/release.txt"
 
@@ -23,12 +24,15 @@ check_passes
 printf 'wrong\n' > "$tmp/release.txt"
 check_fails
 printf '%s\n' "$id" > "$tmp/release.txt"
-printf '<title>different site</title><script src="/assets/app-abc123.js"></script>\n' > "$tmp/index.html"
+printf '<title>different site</title><script src="/assets/app-abc123.js"></script><link href="/assets/app-abc123.css" rel="stylesheet">\n' > "$tmp/index.html"
 check_fails
-printf '<title>aztec-web-inspector</title><script src="/assets/app-abc123.js"></script>\n' > "$tmp/index.html"
+printf '<title>aztec-web-inspector</title><script src="/assets/app-abc123.js"></script><link href="/assets/app-abc123.css" rel="stylesheet">\n' > "$tmp/index.html"
 rm "$tmp/assets/app-abc123.js"
 check_fails
 printf 'app\n' > "$tmp/assets/app-abc123.js"
+rm "$tmp/assets/app-abc123.css"
+check_fails
+printf 'css\n' > "$tmp/assets/app-abc123.css"
 rm "$tmp/samples/sample-compact-1.png"
 check_fails
 printf 'sample\n' > "$tmp/samples/sample-compact-1.png"

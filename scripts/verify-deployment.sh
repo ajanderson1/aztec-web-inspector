@@ -13,8 +13,11 @@ fetch "/index.html" > "$tmp/index"
 grep -q 'aztec-web-inspector' "$tmp/index" || { echo 'wrong page' >&2; exit 1; }
 fetch '/samples/sample-compact-1.png' > "$tmp/sample"
 [[ -s $tmp/sample ]] || exit 1
-asset=$(grep -oE '/assets/[a-zA-Z0-9_.-]+\.(js|css)' "$tmp/index" | head -1)
-[[ -n $asset ]] || exit 1
-fetch "$asset" > "$tmp/asset"
-[[ -s $tmp/asset ]] || exit 1
+# Check every referenced entrypoint, not only the first JavaScript file.
+assets=$(grep -oE '/assets/[a-zA-Z0-9_.-]+\.(js|css)' "$tmp/index" | sort -u)
+[[ -n $assets ]] || exit 1
+while IFS= read -r asset; do
+  fetch "$asset" > "$tmp/asset"
+  [[ -s $tmp/asset ]] || exit 1
+done <<< "$assets"
 printf 'verified %s\n' "$id"
