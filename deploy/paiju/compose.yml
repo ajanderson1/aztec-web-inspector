@@ -1,0 +1,23 @@
+name: aztec-web-inspector
+services:
+  site:
+    image: docker.io/library/caddy@sha256:c3d7ee5d2b11f9dc54f947f68a734c84e9c9666c92c88a7f30b9cba5da182adb
+    restart: unless-stopped
+    read_only: true
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${RELEASES_ROOT:?Set RELEASES_ROOT}:/srv/releases:ro
+    networks:
+      - aztec
+  tunnel:
+    image: docker.io/cloudflare/cloudflared@sha256:ff69a2225ad7c6f85ed84fbd5f3087df46202426b2388ec60214098e0adf05e9
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Set TUNNEL_TOKEN}
+    networks:
+      - aztec
+    depends_on:
+      - site
+networks:
+  aztec: {}
