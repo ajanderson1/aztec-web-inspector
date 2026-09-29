@@ -23,6 +23,10 @@ while IFS= read -r asset; do
 done < <(grep -oE '/assets/[a-zA-Z0-9_.-]+\.(js|css)' "$incoming/index.html" | sort -u)
 grep -qE '/assets/[a-zA-Z0-9_.-]+\.(js|css)' "$incoming/index.html" || exit 2
 
+# SCP may inherit a restrictive umask; the read-only Caddy mount still needs
+# traversal and file-read permissions on the published revision.
+find "$incoming" -type d -exec chmod 755 {} +
+find "$incoming" -type f -exec chmod 644 {} +
 mv -- "$incoming" "$root/$id"
 link="$root/.current-$id"
 trap 'rm -f -- "$link"' EXIT

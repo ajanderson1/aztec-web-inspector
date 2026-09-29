@@ -12,12 +12,16 @@ new_id=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 fixture() {
   local id=$1
   local dir="$root/.incoming/$id"
+  local prior_umask
+  prior_umask=$(umask)
+  umask 077
   mkdir -p "$dir/assets" "$dir/samples"
   printf '<title>aztec-web-inspector</title><script src="/assets/app-abc123.js"></script><link href="/assets/app-abc123.css" rel="stylesheet">\n' > "$dir/index.html"
   printf 'window.app=true;\n' > "$dir/assets/app-abc123.js"
   printf 'body { color: black; }\n' > "$dir/assets/app-abc123.css"
   printf 'sample\n' > "$dir/samples/sample-compact-1.png"
   printf '%s\n' "$id" > "$dir/release.txt"
+  umask "$prior_umask"
 }
 
 expect_failure() {
@@ -33,6 +37,9 @@ fixture "$old_id"
 bash "$script_dir/deploy-release.sh" "$old_id" "$root/.incoming/$old_id" "$root"
 [[ $(readlink "$root/current") == "$old_id" ]] || exit 1
 [[ -f "$root/$old_id/index.html" ]] || exit 1
+mode() { stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
+[[ $(mode "$root/$old_id") == 755 ]] || { echo 'published directory is not traversable by Caddy' >&2; exit 1; }
+[[ $(mode "$root/$old_id/index.html") == 644 ]] || { echo 'published file is not readable by Caddy' >&2; exit 1; }
 fixture "$new_id"
 rm "$root/.incoming/$new_id/index.html"
 expect_failure "$new_id" "$root/.incoming/$new_id" "$root"
