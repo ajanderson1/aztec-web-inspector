@@ -19,8 +19,8 @@ assert site['image'] == yaml.safe_load((root / 'deploy/paiju/compose.yml').read_
 assert site['read_only'] is True
 assert '${RELEASES_ROOT:?Set RELEASES_ROOT}:/srv/releases:ro' in site['volumes']
 assert site['ports'] == [
-    '${TAILSCALE_IP:?Set Rimo Tailscale IP}:18082:8080',
-    '127.0.0.1:18082:8080',
+    '${TAILSCALE_IP:?Set Rimo Tailscale IP}:18084:8080',
+    '127.0.0.1:18084:8080',
 ], 'Only the tailnet and host loopback addresses may be bound'
 assert caddy_path.read_text() == (root / 'deploy/paiju/Caddyfile').read_text()
 assert 'TAILSCALE_IP=replace-with-rimo-tailscale-ip' in env_path.read_text()
@@ -53,6 +53,7 @@ assert 'aztecstage' in text and 'rimo.tailbf2225.ts.net' in text
 assert '/srv/services/aztec-web-inspector-staging/releases' in text
 assert 'StrictHostKeyChecking=yes' in text and 'ssh-keygen -F rimo.tailbf2225.ts.net' in text
 assert 'scripts/deploy-release.sh' in text and 'scripts/verify-deployment.sh' in text
-assert 'http://127.0.0.1:18082' in text
+assert 'scripts/rollback-release.sh' in text and 'trap rollback ERR' in text
+assert 'http://127.0.0.1:18084' in text
 print('staging workflow contract: PASS')
 PY

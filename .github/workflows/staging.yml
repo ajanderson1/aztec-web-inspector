@@ -58,7 +58,22 @@ jobs:
           ssh=(ssh -i ~/.ssh/aztec_stage -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12)
           scp=(scp -i ~/.ssh/aztec_stage -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12)
           target="$DEPLOY_USER@$DEPLOY_HOST"
+          previous=$("${ssh[@]}" "$target" "readlink '$RELEASES_ROOT/current' || test ! -e '$RELEASES_ROOT/current'")
+          if [[ -n "$previous" && ! "$previous" =~ ^[[:xdigit:]]{40}$ ]]; then
+            echo 'unexpected current release target' >&2
+            exit 1
+          fi
+          rollback() {
+            local status=$?
+            trap - ERR
+            if "${ssh[@]}" "$target" "test \"\$(readlink '$RELEASES_ROOT/current')\" = '$GITHUB_SHA'"; then
+              "${ssh[@]}" "$target" "bash -s -- '$RELEASES_ROOT' '$GITHUB_SHA' '$previous'" < scripts/rollback-release.sh || echo 'rollback failed; manual intervention required' >&2
+            fi
+            exit "$status"
+          }
+          trap rollback ERR
           "${ssh[@]}" "$target" "mkdir -- '$RELEASES_ROOT/.incoming/$GITHUB_SHA'"
           "${scp[@]}" -r dist/. "$target:$RELEASES_ROOT/.incoming/$GITHUB_SHA/"
           "${ssh[@]}" "$target" "bash -s -- '$GITHUB_SHA' '$RELEASES_ROOT/.incoming/$GITHUB_SHA' '$RELEASES_ROOT'" < scripts/deploy-release.sh
-          "${ssh[@]}" "$target" "bash -s -- 'http://127.0.0.1:18082' '$GITHUB_SHA'" < scripts/verify-deployment.sh
+          "${ssh[@]}" "$target" "bash -s -- 'http://127.0.0.1:18084' '$GITHUB_SHA'" < scripts/verify-deployment.sh
+          trap - ERR
