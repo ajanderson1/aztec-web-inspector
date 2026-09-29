@@ -15,6 +15,23 @@ dist-ssr
 .env.*
 !.env.example
 
+# Private planning and operations (previous versions remain in public history)
+.prp/
+RUNBOOK.md
+ops-private/
+
+# Isolated worktrees and agent state
+.worktrees/
+.aj-pm/
+assets/verification/
+.pi/
+.cursor/
+.codex/
+.opencode/
+.aider*
+CLAUDE.local.md
+GEMINI.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
