@@ -61,4 +61,4 @@ jobs:
           "${ssh[@]}" "$target" "mkdir -- '$RELEASES_ROOT/.incoming/$GITHUB_SHA'"
           "${scp[@]}" -r dist/. "$target:$RELEASES_ROOT/.incoming/$GITHUB_SHA/"
           "${ssh[@]}" "$target" "bash -s -- '$GITHUB_SHA' '$RELEASES_ROOT/.incoming/$GITHUB_SHA' '$RELEASES_ROOT'" < scripts/deploy-release.sh
-          "${ssh[@]}" "$target" "bash -s -- 'http://127.0.0.1:18081' '$GITHUB_SHA'" < scripts/verify-deployment.sh
+          "${ssh[@]}" "$target" "bash -s -- 'http://127.0.0.1:18082' '$GITHUB_SHA'" < scripts/verify-deployment.sh
