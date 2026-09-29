@@ -37,7 +37,13 @@ fixture "$old_id"
 bash "$script_dir/deploy-release.sh" "$old_id" "$root/.incoming/$old_id" "$root"
 [[ $(readlink "$root/current") == "$old_id" ]] || exit 1
 [[ -f "$root/$old_id/index.html" ]] || exit 1
-mode() { stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"; }
+mode() {
+  case "$(uname -s)" in
+    Darwin|FreeBSD) stat -f %Lp "$1" ;;
+    Linux) stat -c %a "$1" ;;
+    *) echo 'unsupported stat platform' >&2; return 1 ;;
+  esac
+}
 [[ $(mode "$root/$old_id") == 755 ]] || { echo 'published directory is not traversable by Caddy' >&2; exit 1; }
 [[ $(mode "$root/$old_id/index.html") == 644 ]] || { echo 'published file is not readable by Caddy' >&2; exit 1; }
 fixture "$new_id"

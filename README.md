@@ -2,6 +2,12 @@
 
 Interactive web-based tool for visualizing and debugging Aztec barcodes. Upload an image, and the inspector decodes it, color-codes every module by function, and lets you hover over individual cells to see exactly what they encode.
 
+## Delivery
+
+Routine changes use short-lived branches and reviewed PRs into `dev`. A push to `dev` runs checks and deploys to tailnet-only Rimo staging; verify there from K2 before requesting a reviewed PR from `dev` into `production`. The existing `production` workflow deploys to Paiju, which still requires separate release approval. `main` remains the historical GitHub default branch for now and is not the deployment branch. Direct pushes to these branches may still trigger workflows unless branch rules prohibit them.
+
+Operations and rollback procedures live in a gitignored local runbook (`ops-private/README.md`), not in public Git or fresh clones. The deploy configuration and scripts remain reviewable here; keep a private backup of the runbook. Ignoring `.prp/` and `RUNBOOK.md` does not erase earlier public Git history.
+
 ## Quickstart
 
 ```bash

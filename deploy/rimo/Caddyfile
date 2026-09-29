@@ -1,0 +1,11 @@
+:8080 {
+    root * /srv/releases/current
+    @assets path /assets/* /samples/* /favicon.svg /release.txt
+    handle @assets {
+        file_server
+    }
+    handle {
+        try_files {path} /index.html
+        file_server
+    }
+}

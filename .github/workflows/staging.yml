@@ -1,0 +1,79 @@
+name: Deploy to Rimo Staging
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aztec-staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:run
+      - run: npm run lint
+      - run: npm run build
+      - name: Mark exact build revision
+        run: printf '%s\n' "$GITHUB_SHA" > dist/release.txt
+      - name: Join staging tailnet
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4
+        with:
+          oauth-client-id: ${{ secrets.AZTEC_RIMO_TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.AZTEC_RIMO_TS_OAUTH_SECRET }}
+          tags: tag:aztec-staging-ci
+      - name: Pin Rimo host and install staging-only identity
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.AZTEC_RIMO_DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST_KEY: ${{ secrets.AZTEC_RIMO_DEPLOY_SSH_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          test -n "$DEPLOY_SSH_KEY" && test -n "$DEPLOY_SSH_HOST_KEY"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/aztec_stage
+          chmod 600 ~/.ssh/aztec_stage
+          printf '%s\n' "$DEPLOY_SSH_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/aztec_stage > /dev/null
+          ssh-keygen -F rimo.tailbf2225.ts.net -f ~/.ssh/known_hosts > /dev/null
+      - name: Publish and verify on Rimo
+        env:
+          DEPLOY_HOST: rimo.tailbf2225.ts.net
+          DEPLOY_USER: aztecstage
+          RELEASES_ROOT: /srv/services/aztec-web-inspector-staging/releases
+        run: |
+          set -euo pipefail
+          ssh=(ssh -i ~/.ssh/aztec_stage -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12)
+          scp=(scp -i ~/.ssh/aztec_stage -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=12)
+          target="$DEPLOY_USER@$DEPLOY_HOST"
+          previous=$("${ssh[@]}" "$target" "readlink '$RELEASES_ROOT/current' || test ! -e '$RELEASES_ROOT/current'")
+          if [[ -n "$previous" && ! "$previous" =~ ^[[:xdigit:]]{40}$ ]]; then
+            echo 'unexpected current release target' >&2
+            exit 1
+          fi
+          rollback() {
+            local status=$?
+            trap - ERR
+            if "${ssh[@]}" "$target" "test \"\$(readlink '$RELEASES_ROOT/current')\" = '$GITHUB_SHA'"; then
+              "${ssh[@]}" "$target" "bash -s -- '$RELEASES_ROOT' '$GITHUB_SHA' '$previous'" < scripts/rollback-release.sh || echo 'rollback failed; manual intervention required' >&2
+            fi
+            exit "$status"
+          }
+          trap rollback ERR
+          "${ssh[@]}" "$target" "mkdir -- '$RELEASES_ROOT/.incoming/$GITHUB_SHA'"
+          "${scp[@]}" -r dist/. "$target:$RELEASES_ROOT/.incoming/$GITHUB_SHA/"
+          "${ssh[@]}" "$target" "bash -s -- '$GITHUB_SHA' '$RELEASES_ROOT/.incoming/$GITHUB_SHA' '$RELEASES_ROOT'" < scripts/deploy-release.sh
+          "${ssh[@]}" "$target" "bash -s -- 'http://127.0.0.1:18084' '$GITHUB_SHA'" < scripts/verify-deployment.sh
+          trap - ERR
