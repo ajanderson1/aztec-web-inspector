@@ -26,7 +26,7 @@
 - `ops-private/README.md`: ignored local K2/Rimo/Paiju release, access, staging acceptance, rollback, secret-reference and receipt procedure. Store/backup privately through an operator-approved location; not Git.
 - `deploy/rimo/Caddyfile`, `deploy/rimo/compose.yml`, `deploy/rimo/.env.example`: Rimo-specific static service and tailnet-only bind; no tunnel service.
 - `.github/workflows/staging.yml`: `dev`-only test/build/upload/verify job with Rimo-specific secrets; reuse `scripts/deploy-release.sh` and `scripts/verify-deployment.sh`.
-- `scripts/test-staging-config.sh`: local contract checks for branch/ref, secrets separation, tailnet bind, expected Compose services, and host key pinning.
+- `scripts/test-staging-config.mjs`: local contract checks for branch/ref, secrets separation, tailnet bind, expected Compose services, and host key pinning.
 - Existing production workflow/scripts: change only if focused tests expose a shared contract defect.
 
 ### Task 1: Public Repo Boundary
@@ -41,23 +41,23 @@
 
 ### Task 2: Rimo Static Origin
 
-**Files:** Create `deploy/rimo/Caddyfile`, `deploy/rimo/compose.yml`, `deploy/rimo/.env.example`, `scripts/test-staging-config.sh`.
+**Files:** Create `deploy/rimo/Caddyfile`, `deploy/rimo/compose.yml`, `deploy/rimo/.env.example`, `scripts/test-staging-config.mjs`.
 
 **Interfaces:** Compose accepts `RELEASES_ROOT` and `TAILSCALE_IP` from its on-host mode-0600 `.env`. The single `site` container reads releases read-only under `/srv/releases`; host port `18084` binds `${TAILSCALE_IP}` and `127.0.0.1` only. Production script takes `<SHA> <incoming> <root>`; verifier takes `<origin URL> <SHA>`.
 
-- [ ] **Step 1: Write a failing static-config test.** `scripts/test-staging-config.sh` must fail if Rimo Compose is missing, includes `tunnel`, uses a wildcard/loopback/LAN listener, lacks the read-only release mount, or lacks an explicit `TAILSCALE_IP` requirement. Check the Caddy asset routing and `/release.txt` availability (use the Paiju Caddyfile as the reference). Run `bash scripts/test-staging-config.sh`; expect failure because files do not exist yet.
+- [ ] **Step 1: Write a failing static-config test.** `scripts/test-staging-config.mjs` must fail if Rimo Compose is missing, includes `tunnel`, uses a wildcard/loopback/LAN listener, lacks the read-only release mount, or lacks an explicit `TAILSCALE_IP` requirement. Check the Caddy asset routing and `/release.txt` availability (use the Paiju Caddyfile as the reference). Run `node scripts/test-staging-config.mjs`; expect failure because files do not exist yet.
 - [ ] **Step 2: Add the minimal Rimo config.** Use the same pinned Caddy image as `deploy/paiju/compose.yml`, single `site` service, same static Caddyfile rules; set `ports: ["${TAILSCALE_IP:?Set Rimo Tailscale IP}:18084:8080", "127.0.0.1:18084:8080"]`, read-only release mount, no other networks/services. `.env.example` contains placeholders only (`RELEASES_ROOT=/srv/services/aztec-web-inspector-staging/releases`, `TAILSCALE_IP=replace-with-rimo-tailscale-ip`). Do not materialize a real `.env` from repository values.
-- [ ] **Step 3: Verify and commit.** Run `bash scripts/test-staging-config.sh; bash scripts/test-deploy-release.sh; bash scripts/test-verify-deployment.sh; docker compose --env-file deploy/rimo/.env.example -f deploy/rimo/compose.yml config` only after substituting an explicitly non-routable test IP in a temporary env file, or use `docker compose config --no-interpolate` where supported. Inspect rendered port to prove it is not `0.0.0.0`. If Docker is unavailable, report that separately; do not claim Compose validated. Commit with Device trailer.
+- [ ] **Step 3: Verify and commit.** Run `node scripts/test-staging-config.mjs; bash scripts/test-deploy-release.sh; bash scripts/test-verify-deployment.sh; docker compose --env-file deploy/rimo/.env.example -f deploy/rimo/compose.yml config` only after substituting an explicitly non-routable test IP in a temporary env file, or use `docker compose config --no-interpolate` where supported. Inspect rendered port to prove it is not `0.0.0.0`. If Docker is unavailable, report that separately; do not claim Compose validated. Commit with Device trailer.
 
 ### Task 3: Dev CI/CD Trigger
 
-**Files:** Create `.github/workflows/staging.yml`; extend `scripts/test-staging-config.sh`.
+**Files:** Create `.github/workflows/staging.yml`; extend `scripts/test-staging-config.mjs`.
 
 **Interfaces:** Workflow triggers on `push` to `dev` (optional `workflow_dispatch` allowed only for `refs/heads/dev`), `contents: read`, non-canceling environment concurrency; secrets named `AZTEC_RIMO_TS_OAUTH_CLIENT_ID`, `AZTEC_RIMO_TS_OAUTH_SECRET`, `AZTEC_RIMO_DEPLOY_SSH_KEY`, `AZTEC_RIMO_DEPLOY_SSH_HOST_KEY`. Staging root `/srv/services/aztec-web-inspector-staging/releases`; deploy user `aztecstage`. Host name must be pinned for `rimo.tailbf2225.ts.net`.
 
-- [ ] **Step 1: Extend config test and prove red.** Check trigger/ref guard, `npm ci`, `npm run test:run`, `npm run lint`, `npm run build` before tailnet join; required SSH host-key pin, `StrictHostKeyChecking=yes`, separate staging secret names, staging root and distinct deploy identity; no Paiju secret names or production root. Run `bash scripts/test-staging-config.sh`; expect failure.
+- [ ] **Step 1: Extend config test and prove red.** Check trigger/ref guard, `npm ci`, `npm run test:run`, `npm run lint`, `npm run build` before tailnet join; required SSH host-key pin, `StrictHostKeyChecking=yes`, separate staging secret names, staging root and distinct deploy identity; no Paiju secret names or production root. Run `node scripts/test-staging-config.mjs`; expect failure.
 - [ ] **Step 2: Build workflow.** Follow `deploy.yml`'s SHA-pinned checkout/setup-node, Node 22/npm cache, SHA marker, Tailscale action, fixed per-host SSH key and host-key handling, SCP to `.incoming/$GITHUB_SHA`, and the two release scripts. Use staging-specific OAuth identity/tag only after verifying a narrow tailnet grant; do not reuse the production identity merely for convenience. Read-only GitHub token permissions and no PR trigger. Run verification on Rimo loopback `http://127.0.0.1:18084` after upload and verify from K2 separately when deployed.
-- [ ] **Step 3: Verify and commit.** Run `bash scripts/test-staging-config.sh; bash scripts/test-deploy-release.sh; bash scripts/test-verify-deployment.sh; npm ci; npm run test:run; npm run lint; npm run build; git diff --check`. Inspect YAML with an installed YAML parser or `actionlint` if present; do not infer workflow correctness from text matching alone. Commit with Device trailer.
+- [ ] **Step 3: Verify and commit.** Run `node scripts/test-staging-config.mjs; bash scripts/test-deploy-release.sh; bash scripts/test-verify-deployment.sh; npm ci; npm run test:run; npm run lint; npm run build; git diff --check`. Inspect YAML with an installed YAML parser or `actionlint` if present; do not infer workflow correctness from text matching alone. Commit with Device trailer.
 
 ### Task 4: Controlled Host and GitHub Setup
 

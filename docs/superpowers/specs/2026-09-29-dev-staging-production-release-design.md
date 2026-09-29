@@ -1,7 +1,7 @@
 # Aztec Web Inspector: dev, staging, and production delivery
 
 Date: 2026-09-29
-Status: approved in chat; awaiting written-spec review
+Status: approved in chat; implementation in draft PR #7
 
 ## Outcome and scope
 
@@ -19,7 +19,7 @@ An ignored file cannot be shared through a fresh clone. The implementation hando
 
 Reuse the existing `production` workflow's Node 22 installation, `npm ci`, Vitest, ESLint, TypeScript/Vite build, release SHA marker, and pinned first-party actions. On `dev` pushes, perform those checks before joining the tailnet. Keep staging and production deployment credentials in separate jobs/workflows and GitHub secrets, with separate target identities, least-privilege SSH permissions, pinned host key, and narrowly scoped Tailscale authorization. Do not let PR jobs receive deploy credentials or run PR-supplied code on privileged fleet runners.
 
-On Rimo use a separate site service, release root, and deploy-only user, with no Cloudflare tunnel or public listener. Bind its HTTP listener only to Rimo's Tailscale address; verify from K2 over the tailnet and verify the target's loopback origin. Reuse the validated atomic release publish and verification scripts, serving the same built static assets (including sample images, JS, CSS, and release marker). Give the staging service no access to production volumes or credentials. A failed build, upload, or probe leaves the prior staged release selected; retain at least one previous known-good release for rollback. Record the staged SHA and artifact digest.
+On Rimo use a separate site service, release root, and deploy-only user, with no Cloudflare tunnel or public listener. Bind its HTTP listener only to Rimo's Tailscale address; verify from K2 over the tailnet and verify the target's loopback origin. Reuse the validated atomic release publish and verification scripts, serving the same built static assets (including sample images, JS, CSS, and release marker). Give the staging service no access to production volumes or credentials. A failed build or upload leaves the prior staged release selected; after publication, a failed probe triggers a guarded rollback to the prior release. Retain at least one previous known-good release for rollback. Record the staged SHA and artifact digest.
 
 Before provisioning or exposing the staging site, check current Rimo inventory, capacity, container/network configuration, service identity and SSH restrictions; prove that the listener is not exposed on a public or LAN interface. Provisioning is restricted to this app and requires explicit approval if it changes shared host/tailnet policy. Do not modify other services on Rimo.
 
