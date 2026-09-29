@@ -26,4 +26,33 @@ assert caddy_path.read_text() == (root / 'deploy/paiju/Caddyfile').read_text()
 assert 'TAILSCALE_IP=replace-with-rimo-tailscale-ip' in env_path.read_text()
 assert 'RELEASES_ROOT=/srv/services/aztec-web-inspector-staging/releases' in env_path.read_text()
 print('staging Compose contract: PASS')
+
+workflow_path = root / '.github/workflows/staging.yml'
+assert workflow_path.is_file(), 'missing dev staging workflow'
+workflow = yaml.load(workflow_path.read_text(), Loader=yaml.BaseLoader)
+assert workflow['on']['push']['branches'] == ['dev']
+assert set(workflow['on']) == {'push'}, 'manual or PR events must not deploy'
+assert workflow['permissions'] == {'contents': 'read'}
+assert workflow['concurrency']['cancel-in-progress'] == 'false'
+job = workflow['jobs']['build-and-deploy']
+assert job['if'] == "github.ref == 'refs/heads/dev'"
+steps = job['steps']
+commands = [step.get('run', '') for step in steps]
+for command in ('npm ci', 'npm run test:run', 'npm run lint', 'npm run build'):
+    assert command in commands, f'missing {command}'
+assert max(i for i, step in enumerate(steps) if step.get('run') == 'npm run build') < next(
+    i for i, step in enumerate(steps) if 'tailscale/github-action@' in step.get('uses', '')
+)
+text = workflow_path.read_text()
+for secret in ('AZTEC_RIMO_TS_OAUTH_CLIENT_ID', 'AZTEC_RIMO_TS_OAUTH_SECRET',
+               'AZTEC_RIMO_DEPLOY_SSH_KEY', 'AZTEC_RIMO_DEPLOY_SSH_HOST_KEY'):
+    assert f'secrets.{secret}' in text, f'missing {secret}'
+assert 'secrets.AZTEC_TS_OAUTH' not in text and 'secrets.AZTEC_DEPLOY_SSH' not in text
+assert 'tag:aztec-staging-ci' in text
+assert 'aztecstage' in text and 'rimo.tailbf2225.ts.net' in text
+assert '/srv/services/aztec-web-inspector-staging/releases' in text
+assert 'StrictHostKeyChecking=yes' in text and 'ssh-keygen -F rimo.tailbf2225.ts.net' in text
+assert 'scripts/deploy-release.sh' in text and 'scripts/verify-deployment.sh' in text
+assert 'http://127.0.0.1:18081' in text
+print('staging workflow contract: PASS')
 PY
